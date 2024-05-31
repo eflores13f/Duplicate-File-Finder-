@@ -1,0 +1,78 @@
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
+
+// Updated duplicated file finder still in the works 
+public class DuplicateFileScanner {
+
+    // Map to store file hash and its path
+    private Map<String, String> fileHashes = new HashMap<>();
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        // Prompt user to enter the directory to scan
+        System.out.print("Enter the directory to scan: ");
+        String directoryPath = scanner.nextLine();
+
+        DuplicateFileScanner duplicateFileScanner = new DuplicateFileScanner();
+        duplicateFileScanner.scanDirectory(new File(directoryPath));
+        scanner.close();
+    }
+
+    // Method to scan a directory recursively
+    public void scanDirectory(File directory) {
+        if (!directory.isDirectory()) {
+            System.out.println("The provided path is not a directory.");
+            return;
+        }
+
+        File[] files = directory.listFiles();
+        if (files == null) return;
+
+        for (File file : files) {
+            if (file.isDirectory()) {
+                scanDirectory(file);
+            } else {
+                try {
+                    String fileHash = getFileHash(file);
+                    if (fileHashes.containsKey(fileHash)) {
+                        System.out.println("Duplicate file found: ");
+                        System.out.println("1: " + fileHashes.get(fileHash));
+                        System.out.println("2: " + file.getAbsolutePath());
+                    } else {
+                        fileHashes.put(fileHash, file.getAbsolutePath());
+                    }
+                } catch (IOException | NoSuchAlgorithmException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    // Method to get the hash of a file
+    public String getFileHash(File file) throws IOException, NoSuchAlgorithmException {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        FileInputStream fis = new FileInputStream(file);
+        byte[] byteArray = new byte[1024];
+        int bytesCount;
+
+        while ((bytesCount = fis.read(byteArray)) != -1) {
+            digest.update(byteArray, 0, bytesCount);
+        }
+        fis.close();
+
+        byte[] bytes = digest.digest();
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+
+        return sb.toString();
+    }
+}
